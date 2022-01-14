@@ -70,6 +70,8 @@ export default class EnvGroupList extends Component<PropsType, StateType> {
         this.setState({ envGroups: sortedGroups, loading: false });
       })
       .catch((err) => {
+        console.log("ENV GROUP LIST ERROR", err);
+
         this.setState({ loading: false, error: true });
       });
   };
