@@ -1114,6 +1114,23 @@ const createEnvGroup = baseApi<
   return `/api/projects/${pathParams.id}/clusters/${pathParams.cluster_id}/namespaces/${pathParams.namespace}/envgroup/create`;
 });
 
+const updateEnvGroup = baseApi<
+  {
+    name: string;
+    variables: { [key: string]: string };
+    secret_variables?: { [key: string]: string };
+  },
+  {
+    project_id: number;
+    cluster_id: number;
+    namespace: string;
+  }
+>(
+  "POST",
+  ({ cluster_id, project_id, namespace }) =>
+    `/api/projects/${project_id}/clusters/${cluster_id}/namespaces/${namespace}/envgroup/create`
+);
+
 const createConfigMap = baseApi<
   {
     name: string;
@@ -1382,6 +1399,30 @@ const getCanCreateProject = baseApi<{}, {}>(
   () => "/api/can_create_project"
 );
 
+const addApplicationToEnvGroup = baseApi<
+  {
+    name: string; // Env Group name
+    app_name: string;
+  },
+  { project_id: number; cluster_id: number; namespace: string }
+>(
+  "POST",
+  ({ cluster_id, namespace, project_id }) =>
+    `/api/projects/${project_id}/clusters/${cluster_id}/namespaces/${namespace}/envgroup/add_application`
+);
+
+const removeApplicationFromEnvGroup = baseApi<
+  {
+    name: string; // Env Group name
+    app_name: string;
+  },
+  { project_id: number; cluster_id: number; namespace: string }
+>(
+  "POST",
+  ({ cluster_id, namespace, project_id }) =>
+    `/api/projects/${project_id}/clusters/${cluster_id}/namespaces/${namespace}/envgroup/remove_application`
+);
+
 const provisionDatabase = baseApi<
   {
     username: string;
@@ -1546,9 +1587,12 @@ export default {
   getLogBucketLogs,
   getCanCreateProject,
   createEnvGroup,
+  updateEnvGroup,
   listEnvGroups,
   getEnvGroup,
   deleteEnvGroup,
+  addApplicationToEnvGroup,
+  removeApplicationFromEnvGroup,
   provisionDatabase,
   getDatabases,
 };

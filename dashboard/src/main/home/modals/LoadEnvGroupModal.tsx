@@ -13,8 +13,12 @@ import {
   EnvGroupData,
   formattedEnvironmentValue,
 } from "../cluster-dashboard/env-groups/EnvGroup";
-import Checkbox from "components/porter-form/field-components/Checkbox";
 import CheckboxRow from "components/form-components/CheckboxRow";
+import {
+  PartialEnvGroup,
+  PopulatedEnvGroup,
+} from "components/porter-form/types";
+import Helper from "components/form-components/Helper";
 
 type PropsType = {
   namespace: string;
@@ -22,6 +26,7 @@ type PropsType = {
   closeModal: () => void;
   existingValues: Record<string, string>;
   setValues: (values: Record<string, string>) => void;
+  syncedEnvGroups?: PopulatedEnvGroup[];
   setSyncedEnvGroups?: (values: PopulatedEnvGroup) => void;
 };
 
@@ -32,22 +37,6 @@ type StateType = {
   selectedEnvGroup: EnvGroupData | null;
   buttonStatus: string;
   shouldSync: boolean;
-};
-
-type PartialEnvGroup = {
-  name: string;
-  namespace: string;
-  version: number;
-};
-
-type PopulatedEnvGroup = {
-  name: string;
-  namespace: string;
-  version: 2;
-  variables: {
-    [key: string]: string;
-  };
-  applications: any[];
 };
 
 export default class LoadEnvGroupModal extends Component<PropsType, StateType> {
@@ -61,7 +50,10 @@ export default class LoadEnvGroupModal extends Component<PropsType, StateType> {
   };
 
   onSubmit = () => {
-    if (!this.state.shouldSync) {
+    if (
+      !this.state.shouldSync ||
+      this.state.selectedEnvGroup.meta_version === 1
+    ) {
       this.props.setValues(this.state.selectedEnvGroup.variables);
     } else {
       this.props.setSyncedEnvGroups(this.state.selectedEnvGroup);
@@ -136,19 +128,25 @@ export default class LoadEnvGroupModal extends Component<PropsType, StateType> {
         </Placeholder>
       );
     } else {
-      return this.state.envGroups.map((envGroup: any, i: number) => {
-        return (
-          <EnvGroupRow
-            key={i}
-            isSelected={this.state.selectedEnvGroup === envGroup}
-            lastItem={i === this.state.envGroups.length - 1}
-            onClick={() => this.setState({ selectedEnvGroup: envGroup })}
-          >
-            <img src={sliders} />
-            {envGroup.name}
-          </EnvGroupRow>
-        );
-      });
+      return this.state.envGroups
+        .filter((envGroup) => {
+          return !this.props.syncedEnvGroups.find(
+            (syncedEnvGroup) => syncedEnvGroup.name === envGroup.name
+          );
+        })
+        .map((envGroup: any, i: number) => {
+          return (
+            <EnvGroupRow
+              key={i}
+              isSelected={this.state.selectedEnvGroup === envGroup}
+              lastItem={i === this.state.envGroups.length - 1}
+              onClick={() => this.setState({ selectedEnvGroup: envGroup })}
+            >
+              <img src={sliders} />
+              {envGroup.name}
+            </EnvGroupRow>
+          );
+        });
     }
   };
 
@@ -246,7 +244,16 @@ export default class LoadEnvGroupModal extends Component<PropsType, StateType> {
               }))
             }
             label="Enable env var synchronization"
+            disabled={this.state.selectedEnvGroup?.meta_version === 1}
           />
+
+          {this.state.selectedEnvGroup?.meta_version === 1 && (
+            <Helper color="#f5cb42">
+              Looks like the env group you selected belongs to an old version
+              and is not available for syncing. You can fix this by updating the
+              env group from the env groups tab.
+            </Helper>
+          )}
         </GroupModalSections>
 
         <SaveButton
@@ -457,4 +464,8 @@ const StyledLoadEnvGroupModal = styled.div`
   overflow: hidden;
   border-radius: 6px;
   background: #202227;
+`;
+
+const Flex = styled.div`
+  display: flex;
 `;
