@@ -38,12 +38,6 @@ func NewInfraDeleteHandler(
 func (c *InfraDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	infra, _ := r.Context().Value(types.InfraScope).(*models.Infra)
 
-	request := &types.DeleteInfraRequest{}
-
-	if ok := c.DecodeAndValidate(w, r, request); !ok {
-		return
-	}
-
 	if infra.Kind == types.InfraDOKS || infra.Kind == types.InfraGKE || infra.Kind == types.InfraEKS {
 		c.Config().AnalyticsClient.Track(analytics.ClusterDestroyingStartTrack(
 			&analytics.ClusterDestroyingStartTrackOpts{
@@ -165,6 +159,21 @@ func destroyEKS(conf *config.Config, infra *models.Infra) error {
 }
 
 func destroyRDS(conf *config.Config, infra *models.Infra) error {
+	// find the database and mark as deleting
+	database, err := conf.Repo.Database().ReadDatabaseByInfraID(infra.ProjectID, infra.ID)
+
+	if err != nil {
+		return err
+	}
+
+	database.Status = "destroying"
+
+	database, err = conf.Repo.Database().UpdateDatabase(database)
+
+	if err != nil {
+		return err
+	}
+
 	lastAppliedRDS := &types.RDSInfraLastApplied{}
 
 	// parse infra last applied into EKS config
